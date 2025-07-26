@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kategori K1 - Harita Uygulaması</title>
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      display: block;
+      background: #f0f0f0;
+    }
+
+    #toolbar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #toolbar button {
+      margin: 0 10px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #toolbar button.active {
+      background-color: #00aaff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button id="toolB" onclick="selectTool('B')">Araç B</button>
+  <button id="toolC" onclick="selectTool('C')">Araç C</button>
+  <button id="toolD" onclick="selectTool('D')">Araç D</button>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Harita ve görünüm ayarları
+  let offset = { x: 0, y: 0 };
+  let dragging = false;
+  let dragStart = { x: 0, y: 0 };
+  let scale = 1;
+
+  // Veriler
+  let nodes = []; // Toplar
+  let lines = []; // Bağlantılar
+  let currentTool = null;
+
+  // B aracı için
+  let drawing = false;
+  let currentPath = [];
+
+  // C aracı için
+  let selectedNode = null;
+
+  // Yardımcılar
+  function toWorld(x, y) {
+    return {
+      x: (x - offset.x) / scale,
+      y: (y - offset.y) / scale
+    };
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(offset.x, offset.y);
+    ctx.scale(scale, scale);
+
+    // Çizgiler
+    for (const line of lines) {
+      ctx.beginPath();
+      ctx.moveTo(line.from.x, line.from.y);
+      ctx.lineTo(line.to.x, line.to.y);
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+
+    // Aktif B çizimi
+    if (drawing && currentPath.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(currentPath[0].x, currentPath[0].y);
+      for (let i = 1; i < currentPath.length; i++) {
+        ctx.lineTo(currentPath[i].x, currentPath[i].y);
+      }
+      ctx.strokeStyle = "blue";
+      ctx.stroke();
+    }
+
+    // Noktalar (toplar)
+    for (const node of nodes) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+      ctx.fillStyle = "#444";
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(node.name, node.x, node.y + 5);
+    }
+
+    ctx.restore();
+  }
+
+  function selectTool(tool) {
+    currentTool = tool;
+    document.querySelectorAll("#toolbar button").forEach(btn => btn.classList.remove("active"));
+    document.getElementById("tool" + tool).classList.add("active");
+    selectedNode = null;
+  }
+
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+  canvas.addEventListener("mousedown", e => {
+    if (e.button === 2) {
+      dragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    const pos = toWorld(e.clientX, e.clientY);
+
+    if (currentTool === "D") {
+      const name = prompt("Top adı:");
+      if (name) nodes.push({ x: pos.x, y: pos.y, name });
+    }
+
+    if (currentTool === "B") {
+      drawing = true;
+      currentPath = [pos];
+    }
+
+    if (currentTool === "C") {
+      const clicked = nodes.find(n => Math.hypot(n.x - pos.x, n.y - pos.y) < 20);
+      if (clicked) {
+        if (!selectedNode) {
+          selectedNode = clicked;
+        } else {
+          lines.push({ from: selectedNode, to: clicked });
+          const name = prompt("Oluşturulan topun adı:");
+          if (name) nodes.push({ x: (selectedNode.x + clicked.x) / 2, y: (selectedNode.y + clicked.y) / 2, name });
+          selectedNode = null;
+        }
+      }
+    }
+
+    draw();
+  });
+
+  canvas.addEventListener("mouseup", e => {
+    if (e.button === 2) {
+      dragging = false;
+      return;
+    }
+
+    if (currentTool === "B" && drawing && currentPath.length > 1) {
+      for (let i = 1; i < currentPath.length; i++) {
+        lines.push({ from: currentPath[i - 1], to: currentPath[i] });
+      }
+      const end = currentPath[currentPath.length - 1];
+      const name = prompt("Çizim sonunda top adı:");
+      if (name) nodes.push({ x: end.x, y: end.y, name });
+    }
+
+    drawing = false;
+    currentPath = [];
+    draw();
+  });
+
+  canvas.addEventListener("mousemove", e => {
+    if (dragging) {
+      offset.x += e.clientX - dragStart.x;
+      offset.y += e.clientY - dragStart.y;
+      dragStart = { x: e.clientX, y: e.clientY };
+      draw();
+    }
+
+    if (currentTool === "B" && drawing) {
+      const pos = toWorld(e.clientX, e.clientY);
+      currentPath.push(pos);
+      draw();
+    }
+  });
+
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    scale *= delta;
+    draw();
+  });
+
+  window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+  });
+
+  draw();
+</script>
+
+</body>
+</html>
