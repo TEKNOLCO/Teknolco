@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teknolco</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url("arkaplan.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .logo {
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .kategori-bar {
+      display: flex;
+      gap: 15px;
+    }
+
+    .kategori-bar button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      background-color: white;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .kategori-bar button:hover {
+      background-color: #444;
+      color: white;
+    }
+
+    .arama-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: calc(100vh - 100px);
+    }
+
+    .arama-kutusu {
+      padding: 15px 30px;
+      border-radius: 40px;
+      border: none;
+      width: 300px;
+      font-size: 18px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Teknolco</div>
+    <div class="kategori-bar" id="kategoriBar">
+      <button>K1</button>
+    </div>
+  </header>
+
+  <div class="arama-container">
+    <input
+      type="text"
+      class="arama-kutusu"
+      placeholder="Kategori ara..."
+      oninput="filtreleKategoriler(this.value)"
+    />
+  </div>
+
+  <script>
+    const orijinalKategoriler = ["K1"];
+
+    function filtreleKategoriler(deger) {
+      const bar = document.getElementById("kategoriBar");
+      bar.innerHTML = "";
+      const filtrelenmis = orijinalKategoriler.filter(kat =>
+        kat.toLowerCase().startsWith(deger.toLowerCase())
+      );
+      filtrelenmis.forEach(kat => {
+        const btn = document.createElement("button");
+        btn.innerText = kat;
+        bar.appendChild(btn);
+      });
+    }
+  </script>
+</body>
+</html>
+
